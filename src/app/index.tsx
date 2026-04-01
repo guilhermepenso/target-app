@@ -1,12 +1,16 @@
-import { Button } from "@/components/Button";
-import HomeHeader from "@/components/HomeHeader";
-import { List } from "@/components/List";
-import { Target } from "@/components/Target";
 import { router, useFocusEffect } from "expo-router";
 import { Alert, StatusBar, View } from "react-native";
 
-import { useTargetDatabase } from "../database/useTargetDatabase";
-import { useCallback } from "react";
+import { useTargetDatabase } from "@/database/useTargetDatabase";
+import { useCallback, useState } from "react";
+
+import { List } from "@/components/List";
+import { Button } from "@/components/Button";
+import { Loading } from "@/components/Loading";
+import { HomeHeader } from "@/components/HomeHeader";
+import { Target, TargetProps } from "@/components/Target";
+
+import { numberToCurrency } from "@/utils/numberToCurrency";
 
 const summary = {
   total: "R$ 2.680,00",
@@ -14,58 +18,62 @@ const summary = {
   output: { label: "Saída", value: "-R$ 883.65" },
 };
 
-const targets = [
-  {
-    id: "1",
-    name: "Apple Watch",
-    percentage: "50%",
-    current: "R$ 580,00",
-    target: "R$ 1.790,00",
-  },
-  {
-    id: "2",
-    name: "Comprar uma cadeira ergonômica",
-    percentage: "75%",
-    current: "R$ 900,00",
-    target: "R$ 1.200,00",
-  },
-  {
-    id: "3",
-    name: "Fazer uma viagem para o Rio de Janeiro",
-    percentage: "75%",
-    current: "R$ 2.000,00",
-    target: "R$ 3.000,00",
-  },
-];
-
 export default function Index() {
-  const targetDatabase = useTargetDatabase()
+  const [isFetching, setIsFetching] = useState(true);
+  const [targets, setTargets] = useState<TargetProps[]>([]);
 
-  async function fetchTargets() {
+  const targetDatabase = useTargetDatabase();
+
+  async function fetchTargets(): Promise<TargetProps[]> {
     try {
-      const response = await targetDatabase.listBySavedValue()
-      console.log(response)
+      const response = await targetDatabase.listBySavedValue();
+
+      return response.map((item) => ({
+        id: String(item.id),
+        name: item.name,
+        current: numberToCurrency(item.current),
+        percentage: item.percentage.toFixed(0) + "%",
+        target: numberToCurrency(item.amount),
+      }));
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível carregar  as metas.")
-      console.log(error)
+      Alert.alert("Erro", "Não foi possível carregar  as metas.");
+      console.log(error);
     }
+  }
+
+  async function fetchData() {
+    const targetDataPromise = fetchTargets();
+
+    const [targetData] = await Promise.all([targetDataPromise]);
+
+    setTargets(targetData);
+    setIsFetching(false);
   }
 
   useFocusEffect(
     useCallback(() => {
-      fetchTargets()
-    }, [])
-  )
+      fetchData();
+    }, []),
+  );
+
+  if (isFetching) {
+    return <Loading />;
+  }
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar barStyle="light-content"/>
+      <StatusBar barStyle="light-content" />
       <HomeHeader data={summary} />
       <List
         title="Metas"
         data={targets}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <Target data={item} onPress={() => router.navigate(`/in-progress/${item.id}`)} />}
+        renderItem={({ item }) => (
+          <Target
+            data={item}
+            onPress={() => router.navigate(`/in-progress/${item.id}`)}
+          />
+        )}
         emptyMessage="Nenhuma meta. Toque em nova meta para criar."
         containerStyle={{ paddingHorizontal: 24 }}
       />

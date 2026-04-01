@@ -17,7 +17,7 @@ type Props = {
   data: HomeHeaderProps;
 };
 
-export default function HomeHeader({ data }: Props) {
+export function HomeHeader({ data }: Props) {
   return (
     <LinearGradient
       colors={[colors.blue[500], colors.blue[800]]}
@@ -34,7 +34,7 @@ export default function HomeHeader({ data }: Props) {
         <Summary
           data={data.input}
           icon={{ name: "arrow-upward", color: colors.green[500] }}
-          />
+        />
         <Summary
           isRight
           data={data.output}
