@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "target",
+    "name": "Target",
     "slug": "target",
     "scheme": "target",
     "version": "1.0.0",
@@ -16,10 +16,6 @@
       "bundleIdentifier": "com.kyotech.target",
       "icon": "./assets/ios-icon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-font",
-      "expo-sqlite"
-    ]
+    "plugins": ["expo-router", "expo-font", "expo-sqlite"]
   }
 }
