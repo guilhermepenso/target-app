@@ -1,52 +1,106 @@
 import { router, useFocusEffect } from "expo-router";
 import { Alert, StatusBar, View } from "react-native";
-
-import { useTargetDatabase } from "@/database/useTargetDatabase";
 import { useCallback, useState } from "react";
 
-import { List } from "@/components/List";
+import { useTargetDatabase } from "@/database/useTargetDatabase";
+import {
+  useTransactionsDatabase,
+  Summary,
+} from "../database/useTransactionsDatabase";
+
 import { Button } from "@/components/Button";
+import { HomeHeader, HomeHeaderProps } from "@/components/HomeHeader";
+import { List } from "@/components/List";
 import { Loading } from "@/components/Loading";
-import { HomeHeader } from "@/components/HomeHeader";
 import { Target, TargetProps } from "@/components/Target";
 
 import { numberToCurrency } from "@/utils/numberToCurrency";
 
-const summary = {
-  total: "R$ 2.680,00",
-  input: { label: "Entrada", value: "R$ 6,184.90" },
-  output: { label: "Saída", value: "-R$ 883.65" },
-};
-
 export default function Index() {
   const [isFetching, setIsFetching] = useState(true);
   const [targets, setTargets] = useState<TargetProps[]>([]);
+  const [summary, setSummary] = useState<HomeHeaderProps>({
+    total: numberToCurrency(0),
+    input: {
+      label: "Entradas",
+      value: numberToCurrency(0),
+    },
+    output: {
+      label: "Saídas",
+      value: numberToCurrency(0),
+    },
+  });
 
   const targetDatabase = useTargetDatabase();
+  const transactionsDatabase = useTransactionsDatabase();
 
   async function fetchTargets(): Promise<TargetProps[]> {
     try {
-      const response = await targetDatabase.listBySavedValue();
+      const response = await targetDatabase.listByClosestTarget();
 
-      return response.map((item) => ({
-        id: String(item.id),
-        name: item.name,
-        current: numberToCurrency(item.current),
-        percentage: item.percentage.toFixed(0) + "%",
-        target: numberToCurrency(item.amount),
-      }));
+      if (!response) throw new Error("Sem dados de metas");
+
+      return (
+        response.map((item) => ({
+          id: String(item.id),
+          name: item.name,
+          current: numberToCurrency(item.current),
+          percentage: item.percentage.toFixed(0) + "%",
+          target: numberToCurrency(item.amount),
+        })) ?? []
+      );
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível carregar  as metas.");
+      Alert.alert("Erro", "Não foi possível carregar as metas.");
       console.log(error);
+      return [];
+    }
+  }
+
+  async function fetchSummary(): Promise<HomeHeaderProps> {
+    try {
+      const response = await transactionsDatabase.summary();
+
+      if (!response) throw new Error("Sem dados do sumário");
+
+      return {
+        total: numberToCurrency(response.input + response.output),
+        input: {
+          label: "Entradas",
+          value: numberToCurrency(response.input),
+        },
+        output: {
+          label: "Saídas",
+          value: numberToCurrency(response.output),
+        },
+      };
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível carregar o sumário.");
+      console.log(error);
+      return {
+        total: numberToCurrency(0),
+        input: {
+          label: "Entradas",
+          value: numberToCurrency(0),
+        },
+        output: {
+          label: "Saídas",
+          value: numberToCurrency(0),
+        },
+      };
     }
   }
 
   async function fetchData() {
     const targetDataPromise = fetchTargets();
+    const summaryDataPromise = fetchSummary();
 
-    const [targetData] = await Promise.all([targetDataPromise]);
+    const [targetData, summaryData] = await Promise.all([
+      targetDataPromise,
+      summaryDataPromise,
+    ]);
 
     setTargets(targetData);
+    setSummary(summaryData);
     setIsFetching(false);
   }
 

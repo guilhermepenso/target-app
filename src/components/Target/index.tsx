@@ -9,7 +9,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { styles } from "./styles";
 
 export type TargetProps = {
-  id?: string;
+  id: string;
   name: string;
   percentage: string;
   current: string;
@@ -32,7 +32,7 @@ export function Target({ data, ...rest }: Props) {
         </Text>
       </View>
 
-      <MaterialIcons name="chevron-right" size={20}/>
+      <MaterialIcons name="chevron-right" size={20} />
     </TouchableOpacity>
   );
 }
